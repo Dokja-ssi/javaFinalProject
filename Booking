@@ -1,0 +1,333 @@
+package hell;
+
+import java.io.*;                // For reading and writing files
+import java.util.*;              // For Scanner and ArrayList
+import java.time.LocalDateTime;  // For getting current date and time
+import java.time.format.DateTimeFormatter; // For formatting the date/time
+
+// ==============================
+// CLASS: Booking
+// → This class represents a single booking record.
+// → It stores details like passenger name, pickup/dropoff locations, fare, etc.
+// → Set each variable with the desired database
+// ==============================
+class Booking {
+    int id;
+    String passengerName;
+    String pickupLocation;
+    String dropoffLocation;
+    double distanceKm;
+    double fare;
+    String status;
+    String bookingTimestamp;
+
+    // Creates a new 'Booking' object with all the details correctly place in it's variable
+    public Booking(int id, String passengerName, String pickupLocation, String dropoffLocation,
+                   double distanceKm, double fare, String status, String bookingTimestamp) {
+    	// Use 'this' to identify as it's one true self, to not confuse the code on what it means
+    	// 'this.id = id' explanation: assign whatever you want to put in this 'id' to this variable 'id' and only in that variable
+        this.id = id;
+        this.passengerName = passengerName;
+        this.pickupLocation = pickupLocation;
+        this.dropoffLocation = dropoffLocation;
+        this.distanceKm = distanceKm;
+        this.fare = fare;
+        this.status = status;
+        this.bookingTimestamp = bookingTimestamp;
+    }
+
+    // Converts a 'Booking' object into one line of text for saving in CSV file/Excel file
+    // '@Override' is use to replace or customize a method that already exist
+    // 'toString' returns a more readable description of the 'Booking' to the CSV file/Excel file
+    @Override
+    public String toString() {
+        return id + "," + passengerName + "," + pickupLocation + "," + dropoffLocation + "," +
+               distanceKm + "," + fare + "," + status + "," + bookingTimestamp;
+    }
+
+    // Converts a line from the CSV file/Excel file back into a 'Booking' object
+    // Identify 'Booking' as the file name, 'fromCSV' = file type you use, 'String line' = one line of text from the CSV file
+    // 'line.split(",", -1)' = split each of the data in CSV with ',' that includes empty values
+    public static Booking fromCSV(String line) {
+        String[] data = line.split(",", -1);
+        // Ask 'data' if it at least have 8 piece of data, if not then return it as 'null'
+        if (data.length < 8) return null;
+        // Create a new 'Booking' with the designated 'data'
+        return new Booking(
+            Integer.parseInt(data[0]),  // Booking ID
+            data[1],                    // Passenger name
+            data[2],                    // Pickup location
+            data[3],                    // Dropoff location
+            Double.parseDouble(data[4]),// Distance
+            Double.parseDouble(data[5]),// Fare
+            data[6],                    // Status (Active/Cancelled)
+            data[7]                     // Timestamp
+        );
+    }
+}
+
+// ==============================
+// CLASS: Final_project
+// → This is the main program for the Ride Hailing Booking System.
+// → Handles user input, menu, file storage, and report generation.
+// ==============================
+public class Final_project {
+	// File where booking data is saved
+    private static final String FILE_NAME = "Bookings.csv";
+
+    public static void main(String[] args) {
+        Scanner input = new Scanner(System.in);
+     // Check the file 'Booking' then load any existing bookings from the file to 'bookings'
+        List<Booking> bookings = loadBookings();
+
+        // Automatically determine the next booking ID
+        // '.stream' = converts all the list in that file to a 'booking' object
+        // '.mapToInt(b -> b.id)' = just take 'id' from each of the booking and turn it into an integer
+        // '.max()' = find the highest id number in the list
+        // '.orElse(0)' = if there's no id yet, use the default '0'
+        // '+ 1' = once the highest id is found, add 1 to get a new id
+        int nextId = bookings.stream().mapToInt(b -> b.id).max().orElse(0) + 1;
+
+        // Use to for when user will choose
+        String letter; 
+
+        // 'do' = main looping program (runs until user chooses to exit)
+        do {
+            // Display the main menu
+            System.out.println("\n===== RIDE HAILING BOOKING SYSTEM =====");
+            System.out.println("a. View All Bookings");
+            System.out.println("b. Book a Ride");
+            System.out.println("c. Cancel a Booking");
+            System.out.println("d. Generate Booking Report");
+            System.out.println("e. Exit Application");
+            System.out.print("Enter your choice: ");
+            // Convert what the user input to lowercase
+            letter = input.nextLine().toLowerCase();
+
+            switch (letter) {
+
+                // ==============================
+                // OPTION A: View all bookings
+                // → Displays a list of all bookings saved in the system
+                // ==============================
+                case "a":
+                    System.out.println("\n>>> BOOKING LIST <<<");
+                    // '.isEmpty' = check if there no records yet or data in the file
+                    if (bookings.isEmpty()) {
+                        System.out.println("No records found.");
+                    } else {
+                        // Print each booking record if it;s not empty
+                    	// 'Booking b : bookings' = label the data each time the code loop
+                    	// Example: Booking b = Booking 1#, Booking 2#, Booking 3#...
+                        for (Booking b : bookings) {
+                            System.out.println(
+                                "ID: " + b.id +
+                                " | Passenger: " + b.passengerName +
+                                " | Pickup: " + b.pickupLocation +
+                                " | Dropoff: " + b.dropoffLocation +
+                                " | Distance: " + b.distanceKm + " km" +
+                                " | Fare: ₱" + String.format("%.2f", b.fare) +
+                                " | Status: " + b.status +
+                                " | Timestamp: " + b.bookingTimestamp
+                            );
+                        }
+                    }
+                    break;
+
+                // ==============================
+                // OPTION B: Book a new ride
+                // → Allows the user to input ride details and calculates the fare
+                // ==============================
+                case "b":
+                    // Ask user for booking details
+                    System.out.print("Passenger Name: ");
+                    String passengerName = input.nextLine();
+
+                    System.out.print("Pickup Location: ");
+                    String pickup = input.nextLine();
+
+                    System.out.print("Dropoff Location: ");
+                    String dropoff = input.nextLine();
+
+                    System.out.print("Distance (in kilometers): ");
+                    double distance = input.nextDouble();
+                    input.nextLine(); // Clear newline from buffer
+
+                    // Fare computation: Base fare ₱25 + ₱20 per km after first km
+                    double fare = 25.0;
+                    if (distance > 1) {
+                        fare += (distance - 1) * 20.0;
+                    }
+
+                    // Get current date and time
+                    // 'DateTimeFormatter' = format how you want the DateTime to look like
+                    // 'String timestamp = now.format(formatter);' = convert it into string
+                    LocalDateTime now = LocalDateTime.now();
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    String timestamp = now.format(formatter);
+
+                    // Create a new booking and add it to the list
+                    Booking newBooking = new Booking(nextId++, passengerName, pickup, dropoff, distance, fare, "Active", timestamp);
+                    bookings.add(newBooking);
+                    saveBookings(bookings); // Save to file
+
+                    // Display booking confirmation
+                    // '.2f' = get the first two decimals; example: 34.34567 = 34.34
+                    System.out.println("\n✅ Booking added successfully!");
+                    System.out.println("Assigned ID: " + newBooking.id);
+                    System.out.printf("Estimated Fare: ₱%.2f (%.2f km)\n", fare, distance);
+                    System.out.println("Timestamp: " + timestamp);
+                    break;
+
+                // ==============================
+                // OPTION C: Cancel a booking
+                // → Finds a booking by ID and marks it as cancelled
+                // ==============================
+                case "c":
+                    System.out.print("Enter the ID of the booking to cancel: ");
+                    int cancelId = input.nextInt();
+                    input.nextLine(); // Clear newline
+
+                    boolean found = false;
+
+                    // Search for matching active booking
+                    // 'b.id' = finds the number the user input; example: user input 1 = 1.id
+                    // 'b.status' = check if it;s label as 'active', if so then change to 'cancelled'
+                    for (Booking b : bookings) {
+                        if (b.id == cancelId && b.status.equalsIgnoreCase("Active")) {
+                            b.status = "Cancelled";
+                            found = true;
+                            System.out.println("\n🚫 Booking cancelled successfully!");
+                            break;
+                        }
+                    }
+
+                    if (!found) {
+                        System.out.println("\n⚠️ No active booking found with ID " + cancelId);
+                    } else {
+                        saveBookings(bookings); // Save updated list
+                    }
+                    break;
+
+                // ==============================
+                // OPTION D: Generate report
+                // → Shows summary statistics like total fare, distance, and status count
+                // ==============================
+                case "d":
+                    System.out.println("\n📊 GENERATING BOOKING REPORT...");
+
+                    // Check if 'Booking' file contains a data alreadry or not, if not call ' no booking'
+                    if (bookings.isEmpty()) {
+                        System.out.println("No bookings found.");
+                    } else {
+                    	// If not empty, get all the bookings and calculate everything
+                        double totalFare = 0;
+                        double totalDistance = 0;
+                        int total = bookings.size();
+                        int active = 0;
+                        int cancelled = 0;
+
+                        // Go through all bookings to calculate totals
+                        for (Booking b : bookings) {
+                            System.out.println(
+                                "ID: " + b.id +
+                                " | Passenger: " + b.passengerName +
+                                " | Distance: " + b.distanceKm + " km" +
+                                " | Fare: ₱" + String.format("%.2f", b.fare) +
+                                " | Status: " + b.status +
+                                " | Timestamp: " + b.bookingTimestamp
+                            );
+
+                            // Combine all Fare and Distance
+                            totalFare += b.fare;
+                            totalDistance += b.distanceKm;
+
+                            // Add 'status' to either 'active' or 'cancelled'
+                            if (b.status.equalsIgnoreCase("Active")) active++;
+                            else if (b.status.equalsIgnoreCase("Cancelled")) cancelled++;
+                        }
+
+                        // Print summary report
+                        System.out.println("\n=== REPORT SUMMARY ===");
+                        System.out.println("📅 Total Bookings: " + total);
+                        System.out.println("✅ Active: " + active);
+                        System.out.println("❌ Cancelled: " + cancelled);
+                        System.out.printf("💰 Total Fare Collected: ₱%.2f\n", totalFare);
+                        System.out.printf("🛣️ Total Distance Covered: %.2f km\n", totalDistance);
+                        System.out.println("=========================\n");
+                    }
+                    break;
+
+                // ==============================
+                // OPTION E: Exit
+                // → Saves all current data to file and exits the program
+                // ==============================
+                case "e":
+                    System.out.println("\n💾 Saving data and exiting program. Thank you!");
+                    saveBookings(bookings); // Save before closing
+                    break;
+
+                // ==============================
+                // DEFAULT: Invalid option
+                // ==============================
+                default:
+                    System.out.println("\n⚠️ Invalid choice. Please try again.");
+            }
+
+        } while (!letter.equals("e")); // Continue until user chooses to exit
+
+        input.close(); // Close input scanner
+    }
+
+    // ==============================
+    // FUNCTION: saveBookings()
+    // → Saves all current bookings into the CSV file
+    // → Each booking is written on one line
+    // ==============================
+    private static void saveBookings(List<Booking> bookings) {
+    	// '(PrintWriter writer = new PrintWriter(new FileWriter(FILE_NAME)))' = open or creates the CSV file if there's no file yet
+    	// 'for' = goes through the entire booking file
+    	// 'writer.println(b.toString())' = writes into a text
+    	// 'catch (IOException e)' = handles errors
+        try (PrintWriter writer = new PrintWriter(new FileWriter(FILE_NAME))) {
+            for (Booking b : bookings) {
+                writer.println(b.toString()); // Save each booking
+            }
+        } catch (IOException e) {
+            System.out.println("❌ Error saving bookings: " + e.getMessage());
+        }
+    }
+
+    // ==============================
+    // FUNCTION: loadBookings()
+    // → Loads saved bookings from the CSV file at program startup
+    // → Returns a list of Booking objects
+    // ==============================
+    private static List<Booking> loadBookings() {
+        List<Booking> bookings = new ArrayList<>();
+        File file = new File(FILE_NAME);
+
+        // If the file does not exist yet, return an empty list
+        if (!file.exists()) return bookings;
+
+        // Read the file line by line and convert each line into a Booking object
+        // 'BufferReader' = read the text form the file faster and smoother
+        // 'FileReader' = open the 'Booking' file so java can read its content
+        // 'reader.readLine()' = read each line in the file and convert it as string
+        // '!= null' = reads each line until there's no more lines
+        // 'Booking.fromCSV(line)' = convert what's inside the 'Booking' file into an object
+        // 'bookings.add(b)' = add that booking to a list
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                Booking b = Booking.fromCSV(line);
+                if (b != null) bookings.add(b);
+            }
+         // 'catch (IOException e)' = handles errors
+        } catch (IOException e) {
+            System.out.println("❌ Error loading bookings: " + e.getMessage());
+        }
+        // Hands back the collected data on the 'Booking' file
+        return bookings;
+    }
+}
